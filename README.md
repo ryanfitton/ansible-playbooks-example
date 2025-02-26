@@ -87,10 +87,10 @@ You can these login with these keys, you will need to decrypt the SSH key first:
 
 ```
 ansible-vault decrypt "ssh_keys/ansible/id_rsa"
-ssh -i ssh_keys/ansible/id_rsa ansible@10.0.10.103 -p1993
+ssh -i ssh_keys/ansible/id_rsa ansible@10.0.10.103 -p2222
 ```
 
 ```
 ansible-vault decrypt "ssh_keys/system/id_rsa"
-ssh -i ssh_keys/system/id_rsa system@10.0.10.103 -p1993
+ssh -i ssh_keys/system/id_rsa system@10.0.10.103 -p2222
 ```
