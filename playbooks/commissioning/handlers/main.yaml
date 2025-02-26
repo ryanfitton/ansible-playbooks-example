@@ -1,0 +1,37 @@
+---
+# Handler to handle common notifications. Handlers are called by other plays.
+# See http://docs.ansible.com/playbooks_intro.html for more information about handlers.
+
+- name: restart ssh
+  become: true
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+  listen: restart ssh
+  # when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian' or ansible_distribution == 'Debian-Buster' # Only for Ubuntu systems
+
+- name: reload ssh
+  become: true
+  ansible.builtin.systemd:
+    name: sshd
+    state: reloaded
+
+- name: restart ntp
+  become: true
+  ansible.builtin.service:
+    name: ntpd
+    state: restarted
+
+- name: 'Restart apt-daily timer'
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: 'apt-daily.timer'
+    state: 'restarted'
+    enabled: true
+
+- name: 'Restart apt-daily-upgrade timer'
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: 'apt-daily-upgrade.timer'
+    state: 'restarted'
+    enabled: true

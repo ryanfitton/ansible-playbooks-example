@@ -1,0 +1,45 @@
+---
+# This will install the QEMU Guest Agent package for the nodes grouped as `virtualmachines`
+
+- name: Install the QEMU Guest Agent package if grouped as `virtualmachines`
+  when: inventory_hostname in groups["virtualmachines"]
+  block:
+    - name: "Install qemu-guest-agent package"
+      become: true
+      ansible.builtin.apt:
+        name: "qemu-guest-agent"
+        state: "present"
+        update_cache: "yes"
+        force_apt_get: "yes"
+
+    - debug:
+        msg: "NOTE: Now rebooting the machine as installing the QEMU Guest Agent may require a reboot"
+
+    - name: Rebooting machine
+      become: true
+      changed_when: true
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        msg: "Rebooting machine in 5 seconds"
+        # reboot_timeout: 3600
+
+    - name: Enable `qemu-guest-agent` service to autostart on boot
+      become: true
+      shell:
+        cmd: systemctl enable qemu-guest-agent
+      ignore_errors: false
+
+    - name: Start `qemu-guest-agent` service
+      become: true
+      shell:
+        cmd: systemctl start qemu-guest-agent
+      ignore_errors: false
+
+    - name: Status of `qemu-guest-agent` service
+      become: true
+      shell:
+        cmd: systemctl status qemu-guest-agent
+      ignore_errors: false
+
+    - debug:
+        msg: "You should enable 'QEMU Guest Agent' for this virtual machine in Proxmox. `virtual machine > Options > QEMU Guest Agent > Enable`"

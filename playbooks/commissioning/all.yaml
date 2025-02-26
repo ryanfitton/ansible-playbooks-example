@@ -1,0 +1,40 @@
+---
+# This playbook deploys the whole application stack in this site.
+# https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html
+
+
+- name: Configure hosts
+  hosts: all
+  gather_facts: false
+
+  vars_files:
+    - ../../groups_vars/all.yaml
+    - vars/unattended_upgrades.yaml
+
+#   roles:
+#     - role: commissioning
+
+  tasks:
+    - include_tasks: tasks/install_sudo.yaml
+      tags: ['sudo']
+    - include_tasks: tasks/configure_ssh.yaml
+      tags: ['ssh']
+    - include_tasks: tasks/add_users.yaml
+      tags: ['users']
+    - include_tasks: tasks/configure_ssh_keys.yaml
+      tags: ['ssh']
+    - include_tasks: tasks/remove_default_user.yaml
+      tags: ['users']
+    - include_tasks: tasks/set_hostname.yaml
+      tags: ['hostname']
+    - include_tasks: tasks/configure_timezone.yaml
+      tags: ['timezone']
+    - include_tasks: tasks/configure_unattended_upgrades.yaml
+      tags: ['security']
+    - include_tasks: tasks/install_required_python_packages.yaml
+      tags: ['python_packages']
+    - include_tasks: tasks/install_qemu_guest_agent.yaml  # For virtual machines only
+      tags: ['qemu']
+
+  handlers:
+    - import_tasks: handlers/main.yaml

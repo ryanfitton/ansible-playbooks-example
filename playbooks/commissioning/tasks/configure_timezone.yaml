@@ -1,0 +1,11 @@
+---
+# This will configure the timezone
+
+# - name: Determine 'become_method'
+#   ansible.builtin.include_tasks:
+#     file: sub_tasks/determine_become_method.yaml
+
+- name: "Set timezone to {{ timezone }}"
+  become: true
+  community.general.timezone:
+    name: "{{ timezone }}"

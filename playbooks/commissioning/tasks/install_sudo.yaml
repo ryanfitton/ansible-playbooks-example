@@ -1,0 +1,47 @@
+---
+# This will install the sudo package for the node
+
+- name: Disable host key checking
+  set_fact:
+    ansible_host_key_checking: false
+
+
+- name: Testing connection to determine correct login details
+  ansible.builtin.include_tasks:
+    file: sub_tasks/test_connection.yaml
+
+
+- name: Get distribution facts
+  ansible.builtin.include_tasks:
+    file: sub_tasks/get_distribution_facts.yaml
+
+
+- name: Determine 'become_method'
+  ansible.builtin.include_tasks:
+    file: sub_tasks/determine_become_method.yaml
+
+
+- name: Check the `sudo` package is already installed
+  ansible.builtin.debug:
+    msg: "{{ package_facts['sudo'] | length }} versions of `sudo` are installed!"
+  when: "'sudo' in package_facts"
+
+- name: Install the `sudo` package
+  when: "'sudo' not in package_facts"
+  block:
+    - name: "Install sudo"
+      become: true
+      ansible.builtin.apt:
+        name: "sudo"
+        state: "present"
+        update_cache: "yes"
+        force_apt_get: "yes"
+    # Create /etc/sudoers file 
+    - name: "Create '/etc/sudoers' file"
+      become: true
+      ansible.builtin.file:
+        path: /etc/sudoers
+        state: touch
+        owner: root
+        group: root
+        mode: 0440

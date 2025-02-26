@@ -1,0 +1,177 @@
+---
+# This will configure ssh port and disable root login for the node
+
+- name: Disable host key checking
+  set_fact:
+    ansible_host_key_checking: false
+
+
+- name: Testing connection to determine correct login details
+  ansible.builtin.include_tasks:
+    file: sub_tasks/test_connection.yaml
+
+
+- name: Get distribution facts
+  ansible.builtin.include_tasks:
+    file: sub_tasks/get_distribution_facts.yaml
+
+
+- name: Determine 'become_method'
+  ansible.builtin.include_tasks:
+    file: sub_tasks/determine_become_method.yaml
+  
+
+# ----------------------------------------------------------------------------------
+# Patch for Ubuntu to ensure the Socket-based Sshd service is disabled, and to revert back to the old service
+# ----------------------------------------------------------------------------------
+- name: Patch for Ubuntu to ensure the Socket-based Sshd service is disabled, and to revert back to the old service
+  when: ansible_distribution == 'Ubuntu'    # Only for Ubuntu systems
+  block:
+  # Switch to using sshd configs as SSHd now uses socket-based activation in Ubuntu 22.10 or later, we want to revert back to the old method
+  # https://askubuntu.com/questions/1439461/ssh-default-port-not-changing-ubuntu-22-10-and-later
+  # https://github.com/dev-sec/ansible-collection-hardening/pull/784
+  # https://git.launchpad.net/ubuntu/+source/openssh/tree/debian/README.Debian#n201
+  - name: Make folder for systemd generators
+    become: true
+    ignore_errors: true
+    shell: mkdir -p /etc/systemd/system-generators
+  - name: Symbolic link to dev null for systemd generators
+    become: true
+    ignore_errors: true
+    shell: ln -s /dev/null /etc/systemd/system-generators/sshd-socket-generator
+  # Switch to using sshd configs as SSHd now uses socket-based activation in Ubuntu 22.10 or later, we want to revert back to the old method
+  # https://askubuntu.com/questions/1439461/ssh-default-port-not-changing-ubuntu-22-10-and-later
+  # https://github.com/dev-sec/ansible-collection-hardening/pull/784
+  - name: Remove ssh service systemd-socket file
+    become: true
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - /etc/systemd/system/ssh.service.d/00-socket.conf
+      - /etc/systemd/system/ssh.service.requires/ssh.socket
+      - /etc/systemd/system/sockets.target.wants/ssh.socket
+  - name: Disable systemd-socket activation
+    become: true
+    ansible.builtin.systemd:
+      name: ssh.socket
+      state: stopped
+      enabled: false
+      masked: true
+
+
+- name: Enable ssh service
+  become: true
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true
+
+- debug:
+    msg: "NOTE: Now rebooting the machine as changing the SSH Service from Socket based to sshd may require a reboot"
+
+- name: Rebooting machine
+  become: true
+  changed_when: true
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    msg: "Rebooting machine in 5 seconds"
+    # reboot_timeout: 3600
+
+
+# ----------------------------------------------------------------------------------
+# Update SSH to use the custom SSH port
+# ----------------------------------------------------------------------------------
+- name: Setup custom SSH port {{ custom_ssh_port }}
+  become: true
+  changed_when: true
+  lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: "^Port"
+    line: "Port {{ custom_ssh_port }}"
+    state: present
+    backup: yes
+  notify: 
+    - restart ssh
+
+- name: "Force all notified handlers to run at this point, not waiting for normal sync points"
+  ansible.builtin.meta: flush_handlers
+
+- name: Configure Ansible to use the new custom SSH port {{ custom_ssh_port }} for all future logins
+  set_fact:
+    ansible_port: "{{ custom_ssh_port }}"
+    cacheable: yes
+
+
+# ----------------------------------------------------------------------------------
+# Update other SSH options
+# ----------------------------------------------------------------------------------
+- name: Disable DNS use for SSH
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^UseDNS'
+    line: "UseDNS no"
+    state: present
+    backup: yes
+  notify: 
+    - restart ssh
+
+- name: Disable empty passwords for SSH
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^PermitEmptyPasswords'
+    line: "PermitEmptyPasswords yes"
+    state: present
+    backup: yes
+  notify: 
+    - restart ssh
+
+- name: Disable ChallengeResponseAuthentication for SSH
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^ChallengeResponseAuthentication'
+    line: "ChallengeResponseAuthentication no"
+    state: present
+    backup: yes
+  notify: 
+    - restart ssh
+
+- name: Disable GSSAPIAuthentication for SSH
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^GSSAPIAuthentication'
+    line: "GSSAPIAuthentication no"
+    state: present
+    backup: yes
+  notify: 
+    - restart ssh
+
+- name: Disable X11Forwarding for SSH
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^X11Forwarding'
+    line: "X11Forwarding no"
+    state: present
+    backup: yes
+  notify: 
+    - restart ssh
+
+- name: "Force all notified handlers to run at this point, not waiting for normal sync points"
+  ansible.builtin.meta: flush_handlers
+
+
+- debug:
+    msg: "NOTE: Now rebooting the machine as changing the SSH config options may require a reboot"
+
+- name: Rebooting machine
+  become: true
+  changed_when: true
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    msg: "Rebooting machine in 5 seconds"
+    # reboot_timeout: 3600

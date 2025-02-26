@@ -1,0 +1,24 @@
+---
+# This will install the required Python packages for the node
+
+- name: "Install Python3 packages"
+  become: true
+  ansible.builtin.apt:
+    name:
+      - python3-dev
+      - python3-pip
+      - python3-setuptools
+      - python3-pexpect         # Install `pexpect` for Ansible `expects` module
+    state: present
+    update_cache: yes
+
+# - name: Ensure Pip is installed
+#   package:
+#     name: "{{ pip_package }}"
+#     state: present
+
+# Install `pexpect` for Ansible `expects` module https://docs.ansible.com/ansible/latest/collections/ansible/builtin/expect_module.html
+# - name: "Install Python PIP package: pexpect"
+#   become: true
+#   ansible.builtin.pipx:
+#     name: pexpect

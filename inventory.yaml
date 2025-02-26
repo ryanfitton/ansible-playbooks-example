@@ -1,0 +1,53 @@
+
+# Groups
+PrintServers:
+  hosts:
+    print-server-host01:
+      ansible_host: 10.0.10.101
+MediaServers:
+  hosts:
+    media-server-host01:
+      ansible_host: 10.0.10.107
+FileServers:
+  hosts:
+    file-server-host01:
+      ansible_host: 10.0.10.103
+NvrServers:
+  hosts:
+    nvr-server-host01:
+      ansible_host: 10.0.10.104
+WebServers:
+  hosts:
+    web-server-host01:
+      ansible_host: 10.0.10.105
+NetworkControllerServers:
+  hosts:
+    network-controller-server-host01:
+      ansible_host: 10.0.10.106
+
+
+# Any bare metal devices E.g Standalone, not managed by a Hypervisor
+baremetal:
+  children:
+    PrintServers:
+
+# Hypervisors which will run Virtual Machines
+hypervisors:
+  hosts:
+    proxmox-host01:
+      ansible_host: 10.0.10.100
+
+# Virual Machines which will be run on the Hypervisor
+virtualmachines:
+  children:
+    MediaServers:
+    FileServers:
+    NvrServers:
+    WebServers:
+    NetworkControllerServers:
+
+all:
+  children:
+    baremetal:
+    hypervisors:
+    virtualmachines:

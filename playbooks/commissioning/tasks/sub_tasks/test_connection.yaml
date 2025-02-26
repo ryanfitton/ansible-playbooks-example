@@ -1,0 +1,29 @@
+---
+# Testing connection to determine correct login details
+# This is a `sub_task` as it's used more than once
+
+- name: "Test initial connection using logins stored in `ansible.cfg` with default user."
+  ping:
+  ignore_unreachable: true
+  register: "conn_default_user"
+- block:
+  - name: Changing login details - Configure Ansible to use default user login details for a 'freshly-installed' system
+    set_fact:
+      ansible_user: "{{ default_user }}"
+      ansible_password: "{{ default_user_password }}"
+      ansible_ssh_private_key_file: ''
+      ansible_become_password: "{{ root_user_password|default(default_user_password) }}"
+      cacheable: yes
+    when: "conn_default_user is mapping and conn_default_user.unreachable is defined and conn_default_user.unreachable"
+
+
+- name: "If connection issue persists set default SSH port."
+  ping:
+  ignore_unreachable: true
+  register: "conn_default_port"
+- block:
+  - name: Changing port details - Configure Ansible to use default SSH port for a 'freshly-installed' system
+    set_fact:
+      ansible_port: "{{ default_ssh_port }}"
+      cacheable: yes
+    when: "conn_default_port is mapping and conn_default_port.unreachable is defined and conn_default_port.unreachable"

@@ -1,0 +1,26 @@
+---
+# Determine 'become_method
+# This is a `sub_task` as it's used more than once
+
+- name: Use distribution specific 'become_method' if `switch_to_sudo_method == true` if undefined or not true
+  when: 'switch_to_sudo_method is undefined or switch_to_sudo_method != true'
+  block:
+    - name: Set `sudo` for `ansible_become_method` if Ubuntu distribution"
+      set_fact:
+        ansible_become_method: sudo
+        cacheable: yes
+      when: ansible_distribution == 'Ubuntu'  # Only for Ubuntu systems
+
+    - name: Set `su` for `ansible_become_method` if Debian distributions"
+      set_fact:
+        ansible_become_method: su
+        cacheable: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Debian-Buster' # Only for Debian systems
+
+- name: If `switch_to_sudo_method` is defined or true
+  when: 'switch_to_sudo_method is defined and switch_to_sudo_method == true'
+  block:
+    - name: "Set `sudo` for `ansible_become_method` if `switch_to_sudo_method == true"
+      set_fact:
+        ansible_become_method: sudo
+        cacheable: yes

@@ -1,0 +1,24 @@
+---
+# Get distribution facts
+# This is a `sub_task` as it's used more than once
+
+- name: Gather the distribution facts
+  setup:
+
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: "Cache the gathered distribution and package facts"
+  set_fact:
+    ansible_facts: "{{ ansible_facts }}"
+    package_facts: "{{ ansible_facts.packages }}"
+    cacheable: yes
+
+# - name: Show gathered distribution
+#   debug:
+#     msg: "{{ ansible_facts }}"
+
+# - name: Show gathered packages
+#   debug:
+#     msg: "{{ package_facts }}"
